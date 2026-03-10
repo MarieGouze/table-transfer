@@ -2,24 +2,59 @@
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>SillyTavern 表格数据无损升级工具</title>
     <style>
+        /* ================= 主题变量定义 ================= */
+        /* 默认：深色模式 (Dracula 风格) */
         :root {
             --bg-color: #1e1e2e;
             --panel-bg: #282a36;
             --text-color: #f8f8f2;
+            --text-muted: #b9b9b9;
             --primary-color: #bd93f9;
             --primary-hover: #ff79c6;
             --secondary-color: #8be9fd;
-            --success-color: #50fa7b;
-            --error-color: #ff5555;
-            --border-radius: 8px;
+            --border-color: #6272a4;
             --input-bg: #44475a;
+            --upload-bg: rgba(98, 114, 164, 0.1);
+            --upload-hover-bg: rgba(98, 114, 164, 0.2);
+            --btn-text-color: #282a36;
+            
+            /* 日志颜色 (深色底) */
+            --log-bg: #191a21;
+            --log-info: #f1fa8c;
+            --log-success: #50fa7b;
+            --log-error: #ff5555;
+            --log-warn: #ffb86c;
         }
 
+        /* 浅色模式 (奶黄 + 66ccff 风格) */
+        [data-theme="light"] {
+            --bg-color: #FFFDF0; /* 浅奶黄色 */
+            --panel-bg: #FFFFFF; /* 纯白面板 */
+            --text-color: #4A5568; /* 深灰蓝字体，保证阅读性 */
+            --text-muted: #718096;
+            --primary-color: #66ccff; /* 低饱和度蓝 */
+            --primary-hover: #4db8ff;
+            --secondary-color: #5ea8d9;
+            --border-color: #cce8ff;
+            --input-bg: #f4f9fd;
+            --upload-bg: rgba(102, 204, 255, 0.05);
+            --upload-hover-bg: rgba(102, 204, 255, 0.15);
+            --btn-text-color: #FFFFFF; /* 蓝色按钮配白字 */
+            
+            /* 日志颜色 (浅色底) */
+            --log-bg: #f8fbfe;
+            --log-info: #007bb5;
+            --log-success: #27ae60;
+            --log-error: #e74c3c;
+            --log-warn: #d35400;
+        }
+
+        /* ================= 全局样式 ================= */
         body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
             background-color: var(--bg-color);
             color: var(--text-color);
             display: flex;
@@ -29,29 +64,54 @@
             margin: 0;
             padding: 20px;
             box-sizing: border-box;
+            transition: background-color 0.3s ease, color 0.3s ease;
         }
 
         .container {
             background-color: var(--panel-bg);
             padding: 30px;
-            border-radius: var(--border-radius);
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+            border-radius: 12px;
+            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.08);
             max-width: 800px;
             width: 100%;
+            position: relative;
+            transition: background-color 0.3s ease, box-shadow 0.3s ease;
         }
+
+        /* 浅色模式下的阴影调整 */
+        [data-theme="light"] .container {
+            box-shadow: 0 10px 40px rgba(102, 204, 255, 0.15);
+        }
+
+        /* 主题切换按钮 */
+        .theme-toggle {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: transparent;
+            border: none;
+            font-size: 1.5rem;
+            cursor: pointer;
+            padding: 5px;
+            border-radius: 50%;
+            transition: transform 0.3s ease;
+            color: var(--text-color);
+        }
+        .theme-toggle:hover { transform: scale(1.1) rotate(15deg); }
 
         h1 {
             margin-top: 0;
             font-size: 1.5rem;
             color: var(--primary-color);
             text-align: center;
+            padding-top: 10px;
         }
 
         p.desc {
             font-size: 0.9rem;
-            color: #b9b9b9;
-            line-height: 1.5;
-            margin-bottom: 20px;
+            color: var(--text-muted);
+            line-height: 1.6;
+            margin-bottom: 25px;
             text-align: center;
         }
 
@@ -64,13 +124,13 @@
 
         /* 左侧：数据上传区 */
         .upload-area {
-            border: 2px dashed #6272a4;
-            border-radius: var(--border-radius);
-            padding: 30px 15px;
+            border: 2px dashed var(--border-color);
+            border-radius: 10px;
+            padding: 35px 15px;
             text-align: center;
             transition: all 0.3s;
             position: relative;
-            background-color: rgba(98, 114, 164, 0.1);
+            background-color: var(--upload-bg);
             display: flex;
             flex-direction: column;
             justify-content: center;
@@ -79,11 +139,11 @@
 
         .upload-area:hover {
             border-color: var(--primary-hover);
-            background-color: rgba(98, 114, 164, 0.2);
+            background-color: var(--upload-hover-bg);
         }
 
         .upload-area.active {
-            border-color: var(--success-color);
+            border-color: var(--log-success);
             border-style: solid;
         }
 
@@ -103,7 +163,7 @@
 
         .upload-text {
             font-size: 0.85rem;
-            color: #888;
+            color: var(--text-muted);
             pointer-events: none;
             word-break: break-all;
             min-height: 40px;
@@ -111,10 +171,10 @@
 
         /* 右侧：模板库控制面板 */
         .template-panel {
-            border: 2px solid #6272a4;
-            border-radius: var(--border-radius);
+            border: 2px solid var(--border-color);
+            border-radius: 10px;
             padding: 20px 15px;
-            background-color: rgba(98, 114, 164, 0.05);
+            background-color: var(--upload-bg);
             display: flex;
             flex-direction: column;
             justify-content: space-between;
@@ -127,18 +187,23 @@
 
         select {
             width: 100%;
-            padding: 10px;
+            padding: 12px;
             background-color: var(--input-bg);
             color: var(--text-color);
-            border: 1px solid #6272a4;
-            border-radius: 6px;
-            font-size: 0.9rem;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            font-size: 0.95rem;
             margin-bottom: 15px;
             outline: none;
             cursor: pointer;
+            appearance: none; /* 移除原生箭头 */
+            background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+            background-repeat: no-repeat;
+            background-position: right 10px center;
+            background-size: 1em;
         }
         
-        select:focus { border-color: var(--primary-color); }
+        select:focus { border-color: var(--primary-color); box-shadow: 0 0 0 2px rgba(102, 204, 255, 0.3); }
 
         .action-btns {
             display: flex;
@@ -147,71 +212,92 @@
 
         .btn-small {
             flex: 1;
-            padding: 8px;
+            padding: 10px;
             border: none;
-            border-radius: 6px;
-            font-size: 0.85rem;
+            border-radius: 8px;
+            font-size: 0.9rem;
             font-weight: bold;
             cursor: pointer;
             transition: all 0.2s;
         }
 
-        .btn-upload { background-color: #50fa7b; color: #282a36; }
-        .btn-upload:hover { background-color: #69ff94; }
+        .btn-upload { background-color: var(--primary-color); color: var(--btn-text-color); }
+        .btn-upload:hover { background-color: var(--primary-hover); }
         
-        .btn-delete { background-color: transparent; color: var(--error-color); border: 1px solid var(--error-color); }
-        .btn-delete:hover { background-color: var(--error-color); color: #fff; }
-        .btn-delete:disabled { border-color: #6272a4; color: #6272a4; cursor: not-allowed; background: transparent; }
+        .btn-delete { background-color: transparent; color: var(--log-error); border: 1px solid var(--log-error); }
+        .btn-delete:hover { background-color: var(--log-error); color: #fff; }
+        .btn-delete:disabled { border-color: var(--border-color); color: var(--text-muted); cursor: not-allowed; background: transparent; }
 
         /* 底部大按钮 */
         .main-btn {
             width: 100%;
-            padding: 14px;
+            padding: 16px;
             background-color: var(--primary-color);
-            color: #282a36;
+            color: var(--btn-text-color);
             border: none;
-            border-radius: var(--border-radius);
-            font-size: 1.1rem;
+            border-radius: 10px;
+            font-size: 1.15rem;
             font-weight: bold;
             cursor: pointer;
-            transition: background-color 0.3s, transform 0.1s;
+            transition: all 0.3s;
+            box-shadow: 0 4px 15px rgba(102, 204, 255, 0.3);
         }
 
-        .main-btn:hover { background-color: var(--primary-hover); }
+        .main-btn:hover { background-color: var(--primary-hover); transform: translateY(-2px); }
         .main-btn:active { transform: scale(0.98); }
-        .main-btn:disabled { background-color: var(--input-bg); color: #6272a4; cursor: not-allowed; transform: none; }
+        .main-btn:disabled { 
+            background-color: var(--input-bg); 
+            color: var(--text-muted); 
+            cursor: not-allowed; 
+            transform: none; 
+            box-shadow: none;
+        }
 
+        /* 日志区域 */
         #logArea {
             margin-top: 20px;
-            background-color: #191a21;
+            background-color: var(--log-bg);
             padding: 15px;
-            border-radius: var(--border-radius);
-            font-family: 'Consolas', monospace;
+            border-radius: 10px;
+            font-family: 'Consolas', 'Courier New', monospace;
             font-size: 0.85rem;
-            height: 200px;
+            height: 180px;
             overflow-y: auto;
             white-space: pre-wrap;
             word-break: break-all;
-            border: 1px solid var(--input-bg);
+            border: 1px solid var(--border-color);
+            line-height: 1.5;
         }
 
-        .log-info { color: #f1fa8c; }
-        .log-success { color: var(--success-color); }
-        .log-error { color: var(--error-color); }
-        .log-warn { color: #ffb86c; }
+        .log-info { color: var(--log-info); }
+        .log-success { color: var(--log-success); }
+        .log-error { color: var(--log-error); }
+        .log-warn { color: var(--log-warn); }
         
-        @media (max-width: 600px) {
-            .upload-grid { grid-template-columns: 1fr; }
+        /* ================= 移动端深度适配 ================= */
+        @media (max-width: 650px) {
+            body { padding: 10px; }
+            .container { padding: 20px 15px; }
+            .upload-grid { grid-template-columns: 1fr; gap: 15px; }
+            h1 { font-size: 1.3rem; margin-top: 10px; }
+            .theme-toggle { top: 15px; right: 15px; font-size: 1.3rem; }
+            .upload-area { padding: 25px 10px; }
+            .action-btns { flex-direction: column; } /* 手机上按钮垂直排列防误触 */
+            .btn-small { padding: 12px; font-size: 1rem; }
+            .main-btn { padding: 14px; font-size: 1.1rem; }
+            #logArea { height: 150px; font-size: 0.8rem; }
         }
     </style>
 </head>
 <body>
 
 <div class="container">
+    <button class="theme-toggle" id="themeToggle" title="切换主题">🌙</button>
+    
     <h1>表格数据无损升级工具</h1>
     <p class="desc">
         左侧放入 <code>table_data.json</code>，右侧选择模板，一键注入新结构。<br>
-        <span style="color: var(--success-color);">✨ 模板库已激活：一次上传，永久保存在本地，随用随切！</span>
+        <span style="color: var(--log-success); font-weight: bold;">✨ 模板库：一次上传，永久保存在本地，随用随切！</span>
     </p>
 
     <div class="upload-grid">
@@ -233,7 +319,6 @@
                 <button id="btnUploadTpl" class="btn-small btn-upload">➕ 新增模板</button>
                 <button id="btnDeleteTpl" class="btn-small btn-delete" disabled>🗑️ 删除选中</button>
             </div>
-            <!-- 隐藏的模板上传框 -->
             <input type="file" id="fileConfig" accept=".json" style="display:none;">
         </div>
     </div>
@@ -244,7 +329,31 @@
 </div>
 
 <script>
-    // DOM 元素
+    // ================= 主题切换逻辑 =================
+    const themeToggle = document.getElementById('themeToggle');
+    const currentTheme = localStorage.getItem('st_theme') || 'dark';
+
+    function setTheme(theme) {
+        if (theme === 'light') {
+            document.documentElement.setAttribute('data-theme', 'light');
+            themeToggle.textContent = '☀️';
+            localStorage.setItem('st_theme', 'light');
+        } else {
+            document.documentElement.removeAttribute('data-theme');
+            themeToggle.textContent = '🌙';
+            localStorage.setItem('st_theme', 'dark');
+        }
+    }
+
+    // 初始化主题
+    setTheme(currentTheme);
+
+    themeToggle.addEventListener('click', () => {
+        const isLight = document.documentElement.getAttribute('data-theme') === 'light';
+        setTheme(isLight ? 'dark' : 'light');
+    });
+
+    // ================= 核心业务逻辑 =================
     const fileData = document.getElementById('fileData');
     const fileConfig = document.getElementById('fileConfig');
     const textData = document.getElementById('textData');
@@ -255,15 +364,13 @@
     const convertBtn = document.getElementById('convertBtn');
     const logArea = document.getElementById('logArea');
 
-    // 数据状态
     let jsonObj_Data = null;
-    let templateLibrary = []; // 存储所有模板 [{id, name, data}]
+    let templateLibrary = [];
     let currentTemplateId = null;
 
     const STORAGE_KEY_LIB = 'st_template_library_v2';
     const STORAGE_KEY_LAST_ID = 'st_last_template_id';
 
-    // -- 核心逻辑：日志 --
     function log(message, type = 'info') {
         const span = document.createElement('span');
         span.className = `log-${type}`;
@@ -272,7 +379,6 @@
         logArea.scrollTop = logArea.scrollHeight;
     }
 
-    // -- 核心逻辑：状态检查 --
     function checkReady() {
         const hasData = jsonObj_Data !== null;
         const hasTemplate = currentTemplateId !== null && currentTemplateId !== "";
@@ -291,17 +397,13 @@
         }
     }
 
-    // -- 模板库管理：加载与渲染 --
     function loadTemplateLibrary() {
         const savedLib = localStorage.getItem(STORAGE_KEY_LIB);
         const lastId = localStorage.getItem(STORAGE_KEY_LAST_ID);
 
         if (savedLib) {
-            try {
-                templateLibrary = JSON.parse(savedLib);
-            } catch (e) {
-                templateLibrary = [];
-            }
+            try { templateLibrary = JSON.parse(savedLib); } 
+            catch (e) { templateLibrary = []; }
         }
 
         renderSelect(lastId);
@@ -310,11 +412,8 @@
 
     function saveTemplateLibrary() {
         localStorage.setItem(STORAGE_KEY_LIB, JSON.stringify(templateLibrary));
-        if (currentTemplateId) {
-            localStorage.setItem(STORAGE_KEY_LAST_ID, currentTemplateId);
-        } else {
-            localStorage.removeItem(STORAGE_KEY_LAST_ID);
-        }
+        if (currentTemplateId) localStorage.setItem(STORAGE_KEY_LAST_ID, currentTemplateId);
+        else localStorage.removeItem(STORAGE_KEY_LAST_ID);
     }
 
     function renderSelect(targetId = null) {
@@ -334,7 +433,6 @@
                 templateSelect.appendChild(opt);
             });
             
-            // 尝试选中目标 ID
             if (targetId && templateLibrary.some(t => t.id === targetId)) {
                 templateSelect.value = targetId;
                 currentTemplateId = targetId;
@@ -346,7 +444,6 @@
         checkReady();
     }
 
-    // -- 交互事件：模板库操作 --
     templateSelect.addEventListener('change', (e) => {
         currentTemplateId = e.target.value;
         saveTemplateLibrary();
@@ -357,9 +454,7 @@
         }
     });
 
-    btnUploadTpl.addEventListener('click', () => {
-        fileConfig.click(); // 触发隐藏的文件上传
-    });
+    btnUploadTpl.addEventListener('click', () => fileConfig.click());
 
     btnDeleteTpl.addEventListener('click', () => {
         if (!currentTemplateId) return;
@@ -372,7 +467,6 @@
         }
     });
 
-    // -- 文件解析逻辑 --
     fileData.addEventListener('change', (e) => {
         const file = e.target.files[0];
         if (!file) return;
@@ -384,7 +478,7 @@
                     throw new Error("未检测到 sheet_ 字段，这不是正确的 table_data.json");
                 }
                 jsonObj_Data = parsed;
-                textData.innerHTML = `<span style="color:var(--success-color)">已加载:<br>${file.name}</span>`;
+                textData.innerHTML = `<span style="color:var(--log-success); font-weight:bold;">已加载:<br>${file.name}</span>`;
                 areaData.classList.add('active');
                 log(`成功读取旧数据文件: ${file.name}`, 'success');
                 checkReady();
@@ -409,28 +503,17 @@
                     throw new Error("未检测到 tableStructure，这不是正确的 tableCustomConfig.json");
                 }
                 
-                // 提示用户输入模板名称
                 let defaultName = file.name.replace('.json', '');
                 let customName = prompt("为这个结构模板起个名字吧（方便以后选择）：", defaultName);
-                if (customName === null) {
-                    fileConfig.value = ''; // 用户取消
-                    return; 
-                }
+                if (customName === null) { fileConfig.value = ''; return; }
                 customName = customName.trim() || defaultName;
 
-                // 构建模板对象并存入库
-                const newTpl = {
-                    id: 'tpl_' + Date.now(),
-                    name: customName,
-                    data: parsed
-                };
-                
+                const newTpl = { id: 'tpl_' + Date.now(), name: customName, data: parsed };
                 templateLibrary.push(newTpl);
                 saveTemplateLibrary();
-                renderSelect(newTpl.id); // 渲染并选中新模板
-                
+                renderSelect(newTpl.id);
                 log(`✨ 成功保存新模板: [${customName}]`, 'success');
-                fileConfig.value = ''; // 清空 input 以便重复上传同名文件
+                fileConfig.value = ''; 
             } catch (error) {
                 log(`解析模板失败: ${error.message}`, 'error');
                 fileConfig.value = '';
@@ -439,15 +522,10 @@
         reader.readAsText(file);
     });
 
-    // -- 核心合并逻辑 --
     convertBtn.addEventListener('click', () => {
         if (!jsonObj_Data || !currentTemplateId) return;
-
         const selectedTpl = templateLibrary.find(t => t.id === currentTemplateId);
-        if (!selectedTpl) {
-            log('错误：未找到选中的模板数据！', 'error');
-            return;
-        }
+        if (!selectedTpl) return log('错误：未找到选中的模板数据！', 'error');
 
         log(`\n--- 开始使用模板 [${selectedTpl.name}] 进行合并 ---`, 'info');
         
@@ -472,7 +550,6 @@
                         sheet.sourceData.deleteNode = newStruct.deleteNode || sheet.sourceData.deleteNode;
                         sheet.sourceData.updateNode = newStruct.updateNode || sheet.sourceData.updateNode;
                         sheet.sourceData.insertNode = newStruct.insertNode || sheet.sourceData.insertNode;
-                        
                         if (newStruct.config) sheet.config = newStruct.config;
 
                         processedCount++;
@@ -503,7 +580,6 @@
         }
     });
 
-    // 初始化
     window.onload = loadTemplateLibrary;
 </script>
 
