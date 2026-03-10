@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SillyTavern 表格结构一键转换器</title>
+    <style>
+        :root {
+            --bg-color: #1e1e2e;
+            --panel-bg: #282a36;
+            --text-color: #f8f8f2;
+            --primary-color: #bd93f9;
+            --primary-hover: #ff79c6;
+            --success-color: #50fa7b;
+            --error-color: #ff5555;
+            --border-radius: 8px;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+
+        .container {
+            background-color: var(--panel-bg);
+            padding: 30px;
+            border-radius: var(--border-radius);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+            max-width: 600px;
+            width: 100%;
+        }
+
+        h1 {
+            margin-top: 0;
+            font-size: 1.5rem;
+            color: var(--primary-color);
+            text-align: center;
+        }
+
+        p.desc {
+            font-size: 0.9rem;
+            color: #b9b9b9;
+            line-height: 1.5;
+            margin-bottom: 20px;
+        }
+
+        .upload-area {
+            border: 2px dashed #6272a4;
+            border-radius: var(--border-radius);
+            padding: 40px 20px;
+            text-align: center;
+            margin-bottom: 20px;
+            transition: border-color 0.3s;
+            position: relative;
+        }
+
+        .upload-area:hover {
+            border-color: var(--primary-hover);
+        }
+
+        input[type="file"] {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            opacity: 0;
+            cursor: pointer;
+        }
+
+        .upload-text {
+            font-size: 1.1rem;
+            pointer-events: none;
+        }
+
+        .upload-text span {
+            color: var(--primary-color);
+            font-weight: bold;
+        }
+
+        button {
+            width: 100%;
+            padding: 12px;
+            background-color: var(--primary-color);
+            color: #282a36;
+            border: none;
+            border-radius: var(--border-radius);
+            font-size: 1.1rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background-color 0.3s, transform 0.1s;
+        }
+
+        button:hover {
+            background-color: var(--primary-hover);
+        }
+
+        button:active {
+            transform: scale(0.98);
+        }
+
+        button:disabled {
+            background-color: #6272a4;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        #logArea {
+            margin-top: 20px;
+            background-color: #191a21;
+            padding: 15px;
+            border-radius: var(--border-radius);
+            font-family: monospace;
+            font-size: 0.85rem;
+            height: 150px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+            word-break: break-all;
+        }
+
+        .log-info { color: #8be9fd; }
+        .log-success { color: var(--success-color); }
+        .log-error { color: var(--error-color); }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>SillyTavern 表格结构一键转换器</h1>
+    <p class="desc">
+        此工具用于将酒馆记忆增强插件的 <code>table_data.json</code> 中的硬编码提示词（note, initNode 等）替换为 <code>{{getvar::tableX_xxx}}</code> 宏变量格式。<br>
+        <strong>纯本地运行，绝对不会修改你的剧情数据 (content)，保护隐私。</strong>
+    </p>
+
+    <div class="upload-area">
+        <input type="file" id="fileInput" accept=".json">
+        <div class="upload-text" id="fileNameDisplay">点击或拖拽上传 <span>table_data.json</span> 文件</div>
+    </div>
+
+    <button id="convertBtn" disabled>开始转换并下载</button>
+
+    <div id="logArea">等待操作...</div>
+</div>
+
+<script>
+    const fileInput = document.getElementById('fileInput');
+    const fileNameDisplay = document.getElementById('fileNameDisplay');
+    const convertBtn = document.getElementById('convertBtn');
+    const logArea = document.getElementById('logArea');
+
+    let selectedFile = null;
+
+    // 表名到索引的映射字典
+    const nameToIndex = {
+        "当前信息": 0, "近期角色": 1, "角色信息": 2, "人物关系": 3,
+        "性爱信息": 4, "日程表": 5, "世界设定": 6, "重要物品": 7,
+        "特殊能力": 8, "事件摘要": 9, "大总结": 10, "剧情指导": 11
+    };
+
+    function log(message, type = 'info') {
+        const span = document.createElement('span');
+        span.className = `log-${type}`;
+        span.textContent = message + '\n';
+        logArea.appendChild(span);
+        logArea.scrollTop = logArea.scrollHeight; // 自动滚动到底部
+    }
+
+    fileInput.addEventListener('change', (e) => {
+        if (e.target.files.length > 0) {
+            selectedFile = e.target.files[0];
+            fileNameDisplay.innerHTML = `已选择: <span>${selectedFile.name}</span>`;
+            convertBtn.disabled = false;
+            logArea.innerHTML = ''; // 清空日志
+            log(`已加载文件: ${selectedFile.name} (${(selectedFile.size / 1024).toFixed(2)} KB)`, 'info');
+        } else {
+            selectedFile = null;
+            fileNameDisplay.innerHTML = `点击或拖拽上传 <span>table_data.json</span> 文件`;
+            convertBtn.disabled = true;
+        }
+    });
+
+    convertBtn.addEventListener('click', () => {
+        if (!selectedFile) return;
+
+        const reader = new FileReader();
+        
+        reader.onload = function(e) {
+            try {
+                // 去除可能存在的 BOM 头
+                let jsonString = e.target.result.replace(/^\uFEFF/, '');
+                let data = JSON.parse(jsonString);
+                
+                let processedCount = 0;
+                log('开始解析 JSON 数据...', 'info');
+
+                // 遍历 JSON 中的所有键
+                for (let key in data) {
+                    let sheet = data[key];
+                    
+                    // 检查是否是合法的 sheet 对象
+                    if (sheet && typeof sheet === 'object' && sheet.name && sheet.sourceData) {
+                        let sheetName = sheet.name;
+                        
+                        if (nameToIndex.hasOwnProperty(sheetName)) {
+                            let index = nameToIndex[sheetName];
+                            
+                            // 核心替换逻辑：只覆盖 sourceData，不动 content
+                            sheet.sourceData = {
+                                note: `{{getvar::table${index}_note}}`,
+                                initNode: `{{getvar::table${index}_initNode}}`,
+                                deleteNode: `{{getvar::table${index}_deleteNode}}`,
+                                updateNode: `{{getvar::table${index}_updateNode}}`,
+                                insertNode: `{{getvar::table${index}_insertNode}}`
+                            };
+                            processedCount++;
+                            log(`成功替换: [${sheetName}] -> 索引 ${index}`, 'success');
+                        } else {
+                            log(`跳过未知表格: [${sheetName}] (未在映射字典中找到)`, 'error');
+                        }
+                    }
+                }
+
+                if (processedCount === 0) {
+                    log('未找到任何符合条件的表格，请检查是否上传了正确的 table_data.json', 'error');
+                    return;
+                }
+
+                log(`\n处理完成！共转换了 ${processedCount} 个表格。准备下载...`, 'success');
+
+                // 触发下载
+                const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                // 生成带时间戳的新文件名
+                const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
+                a.download = `table_data_converted_${timestamp}.json`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+                
+                log('文件已触发下载！', 'success');
+
+            } catch (error) {
+                log(`JSON 解析失败: ${error.message}`, 'error');
+                log('请确保上传的是合法的 JSON 文件。', 'error');
+            }
+        };
+
+        reader.onerror = function() {
+            log('读取文件时发生错误！', 'error');
+        };
+
+        reader.readAsText(selectedFile);
+    });
+</script>
+
+</body>
+</html>
